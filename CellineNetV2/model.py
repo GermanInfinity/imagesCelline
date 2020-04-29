@@ -86,6 +86,8 @@ class MobileNet2(nn.Module):
         self.activation_type = activation
         self.activation = activation(inplace=True)
         self.num_classes = num_classes
+        self.act = nn.ReLU()
+        self.soft_act = nn.Softmax()
 
         self.num_of_channels = [32, 16, 24, 32, 64, 96, 160, 320]
         # assert (input_size % 32 == 0)
@@ -101,7 +103,9 @@ class MobileNet2(nn.Module):
         self.last_conv_out_ch = 1280 if self.scale <= 1 else _make_divisible(1280 * self.scale, 8)
         self.conv_last = nn.Conv2d(self.c[-1], self.last_conv_out_ch, kernel_size=1, bias=False)
         self.bn_last = nn.BatchNorm2d(self.last_conv_out_ch)
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        #self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.avgpool = nn.MaxPool2d(1)
+        self.linear = nn.Linear(in_channels*10)
         self.dropout = nn.Dropout(p=0.2, inplace=True)  # confirmed by paper authors
         self.fc = nn.Linear(self.last_conv_out_ch, self.num_classes)
         self.init_params()
@@ -169,7 +173,9 @@ class MobileNet2(nn.Module):
 
         # average pooling layer
         x = self.avgpool(x)
+        x = self.act(self.Linear(x))
         x = self.dropout(x)
+        x = self.soft_act(self.Linear(x))
 
         # flatten for input to fully-connected layer
         x = x.view(x.size(0), -1)
@@ -180,19 +186,19 @@ class MobileNet2(nn.Module):
 if __name__ == "__main__":
     """Testing
     """
-    model1 = MobileNet2()
-    print(model1)
-    model2 = MobileNet2(scale=0.35)
-    print(model2)
-    model3 = MobileNet2(in_channels=2, num_classes=10)
-    print(model3)
-    x = torch.randn(1, 2, 224, 224)
-    print(model3(x))
-    model4_size = 32 * 10
-    model4 = MobileNet2(input_size=model4_size, num_classes=10)
+    #model1 = MobileNet2()
+    #print(model1)
+    # model2 = MobileNet2(scale=0.35)
+    # print(model2)
+    # model3 = MobileNet2(in_channels=2, num_classes=10)
+    # print(model3)
+    # x = torch.randn(1, 2, 224, 224)
+    # print(model3(x))
+    # model4_size = 32 * 10
+    model4 = MobileNet2(input_size=224, num_classes=10)
     print(model4)
-    x2 = torch.randn(1, 3, model4_size, model4_size)
-    print(model4(x2))
-    model5 = MobileNet2(input_size=196, num_classes=10)
-    x3 = torch.randn(1, 3, 196, 196)
-    print(model5(x3))  # fail
+    # x2 = torch.randn(1, 3, model4_size, model4_size)
+    # print(model4(x2))
+    # model5 = MobileNet2(input_size=196, num_classes=10)
+    # x3 = torch.randn(1, 3, 196, 196)
+    # print(model5(x3))  # fail

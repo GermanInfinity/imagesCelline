@@ -23,6 +23,7 @@ def train(model, loader, epoch, optimizer, criterion, device, dtype, batch_size,
     for batch_idx, (data, target) in enumerate(tqdm(loader)):
         if isinstance(scheduler, CyclicLR):
             scheduler.batch_step()
+            
         data, target = data.to(device=device, dtype=dtype), target.to(device=device)
 
         optimizer.zero_grad()
@@ -53,11 +54,15 @@ def test(model, loader, criterion, device, dtype):
     model.eval()
     test_loss = 0
     correct1, correct5 = 0, 0
+    all_preds = torch.tensor([])
+    all_preds = all_preds.to(device=device, dtype=dtype)
 
     for batch_idx, (data, target) in enumerate(tqdm(loader)):
         data, target = data.to(device=device, dtype=dtype), target.to(device=device)
         with torch.no_grad():
             output = model(data)
+            all_preds = torch.cat((all_preds, output),dim=0)
+
             test_loss += criterion(output, target).item()  # sum up batch loss
             corr = correct(output, target, topk=(1, 5))
         correct1 += corr[0]
@@ -70,7 +75,7 @@ def test(model, loader, criterion, device, dtype):
         'Top5: {}/{} ({:.2f}%)'.format(test_loss, int(correct1), len(loader.dataset),
                                        100. * correct1 / len(loader.dataset), int(correct5),
                                        len(loader.dataset), 100. * correct5 / len(loader.dataset)))
-    return test_loss, correct1 / len(loader.dataset), correct5 / len(loader.dataset)
+    return target, all_preds, test_loss, correct1 / len(loader.dataset), correct5 / len(loader.dataset)
 
 
 def correct(output, target, topk=(1,)):
