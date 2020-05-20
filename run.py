@@ -58,34 +58,66 @@ class SimpleCNN(torch.nn.Module):
         #output features maps = (4608 - )
         #((
         #64 output features
-        self.fc1 = torch.nn.Linear(18 * 16 * 16, 64)
+        self.fc1 = torch.nn.Linear(2940, 72)
         
         #64 input features, 10 output features for our 10 defined classes
-        self.fc2 = torch.nn.Linear(64, 5)
+        #self.fc2 = torch.nn.Linear(64, 5)
+        self.fc2 = torch.nn.Linear(18 * 3 * 3, 64)
+        self.fc3 = torch.nn.Linear(64, 10)
 
     # Defining the forward pass    
     def forward(self, x):
-        
         #Computes the activation of the first convolution
         #Size changes from (3, 32, 32) to (18, 32, 32)
         x = F.relu(self.conv1(x))
-        
         #Size changes from (18, 32, 32) to (18, 16, 16)
         x = self.pool(x)
         
         #Reshape data to input to the input layer of the neural net
         #Size changes from (18, 16, 16) to (1, 4608)
         #Recall that the -1 infers this dimension from the other given dimension
-        x = x.view(-1, 18 * 16 *16)
-        
+        x = x.view(-1, 2940) #Flatten all feature maps into pytorch n rows
+                                    # and specified columns
+
         #Computes the activation of the first fully connected layer
         #Size changes from (1, 4608) to (1, 64)
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
+        x = F.relu(x)
         
         #Computes the second fully connected layer (activation applied later)
         #Size changes from (1, 64) to (1, 10)
         x = self.fc2(x)
+        x = self.fc3(x)
         return(x)
+
+def train(net, batch_size, n_epochs, learning_rate):
+    #Get training data
+    val_loader, train_loader = load_images(224, batch_size, './images/train/', './images/val')
+    n_batches = len(train_loader)
+    
+    #Create our loss and optimizer functions
+    loss = torch.nn.CrossEntropyLoss()
+    optimizer = optim.Adam(net.parameters(), lr=learning_rate)
+
+
+
+    #Get inputs
+    data = next(iter(train_loader))
+    inputs, labels = data
+
+    # #Wrap them in a Variable object
+    inputs, labels = Variable(inputs), Variable(labels)
+
+    #Set the parameter gradients to zero
+    optimizer.zero_grad()
+    
+    #Forward pass, backward pass, optimize
+    outputs = net(inputs)
+    print (outputs.size())
+    #loss_size = loss(outputs, labels)
+    #loss_size.backward()
+    #optimizer.step()
+
 
 
 def trainNet(net, batch_size, n_epochs, learning_rate):
@@ -163,4 +195,5 @@ def trainNet(net, batch_size, n_epochs, learning_rate):
 
 
 CNN = SimpleCNN()
-trainNet(CNN, batch_size=40, n_epochs=5, learning_rate=0.001)
+#trainNet(CNN, batch_size=40, n_epochs=5, learning_rate=0.001)
+train(CNN, batch_size=40, n_epochs=5, learning_rate=0.001)
